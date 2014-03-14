@@ -61,7 +61,7 @@ class MyPoint {
 
 class MyPanel extends JPanel {
 
-    private List<MyPoint> points = new ArrayList<>();
+    private List<MyPoint> points = new ArrayList<MyPoint>();
 
     public MyPanel() {
 
