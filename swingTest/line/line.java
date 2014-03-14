@@ -11,6 +11,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseMotionAdapter;
 import java.util.ArrayList;
+import java.util.List;
 
 import static java.lang.System.out;
 
@@ -61,7 +62,7 @@ class MyPoint {
 
 class MyPanel extends JPanel {
 
-    private List<MyPoint> points = new ArrayList<>();
+    private List<MyPoint> points = new ArrayList<MyPoint>();
 
     public MyPanel() {
 
