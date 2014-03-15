@@ -19,46 +19,50 @@ class game_model {
         map = new map_model("map.txt");
         
         List<Position> freePositions = map.getFreePos();
-    
-        int teams = 2;
-        for (int i = 0; i < teams; ++i) {    
-            if (! freePositions.isEmpty()) {
-                int index = generator.nextInt(freePositions.size());
-                game_objects.add(new tank_model(freePositions.get(index), i));
-                freePositions.remove(index)
-            }
+        if (! freePositions.isEmpty()) {
+            int index = generator.nextInt(freePositions.size());
+            game_objects.add(new tank_model(freePositions.get(index), 1));
+            // freePositions.remove(index);
         }
-
-        for (int i = 0; i < 3; ++i) {
-            if (! freePositions.isEmpty()) {
-                int index = generator.nextInt(freePositions.size());
-                game_objects.add(new bonus_model(freePositions.get(index), 1));
-            }
-        }
+      
+        print();
         
     }
     
     public static void print() {
-        List<List<char>> mapAndObjects = new ArrayList<ArrayList<char>>(map.height()); 
-        for (int i = 0; i < map.height(); ++i) {
-            mapAndObjects.add(new ArrayList(map.width()));
+        ArrayList <ArrayList <Character>> mapAndObjects = new ArrayList<ArrayList<Character>>(); 
+        mapAndObjects.add(new ArrayList());
+        mapAndObjects.get(0).add('+');
+        for (int j = 0; j < map.width(); ++j) {
+                mapAndObjects.get(0).add('-');
+        }
+        mapAndObjects.get(0).add('+');
+        for (int i = 1; i <= map.height(); ++i) {
+            mapAndObjects.add(new ArrayList());
+            mapAndObjects.get(i).add('|');
             for (int j = 0; j < map.width(); ++j) {
-                if (map.isFree(i, j)) {
-                    mapAndObjects.get(i).set(j, ' ');
+                if (map.isFree(i - 1, j)) {
+                    mapAndObjects.get(i).add(' ');
                 } else {
-                    mapAndObjects.get(i).set(j, '*');
+                    mapAndObjects.get(i).add('*');
                 }
             }
+            mapAndObjects.get(i).add('|');
         }
         
+        mapAndObjects.add(new ArrayList());
+        mapAndObjects.get(map.height()+1).add('+');
+        for (int j = 0; j < map.width(); ++j) {
+                mapAndObjects.get(map.height()+1).add('-');
+        }
+        mapAndObjects.get(map.height()+1).add('+');
         for (game_object_model obj : game_objects) {
-            int x = obj.getPos().getX();
-            int y = obj.getPos().getY();
+            int x = obj.getPos().getX() + 1;
+            int y = obj.getPos().getY() + 1;
             mapAndObjects.get(y).set(x, obj.getRepresentation());
         }
-        
-        for (int i = 0; i < map.height(); ++i) {
-            for (int j = 0; j < map.width(); ++j) {
+        for (int i = 0; i < map.height() + 2; ++i) {
+            for (int j = 0; j < map.width() + 2; ++j) {
                 out.print(mapAndObjects.get(i).get(j));
             }
             out.print("\n");
@@ -97,7 +101,9 @@ class game_object_model {
         pos = new Position(x, y);
     }
     
-    public char getRepresentation();
+    public char getRepresentation() {
+        return ' ';
+    }
     
     public Position getPos() {
         return pos;
