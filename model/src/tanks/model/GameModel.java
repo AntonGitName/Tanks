@@ -9,7 +9,8 @@ public class GameModel {
     private java.util.Map<Integer, GameObject> gameobjects;
     
     public GameModel() {
-        
+        map = new Map();
+        gameobjects = new HashMap<Integer, GameObject>();
     }
     
     public Map getMap() {

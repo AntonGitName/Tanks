@@ -6,7 +6,7 @@ import tanks.model.Position;
 public class Map {
     private int width;
     private int height;
-    private List<? extends List<Cell>> matrix;
+    private List<ArrayList<Cell>> matrix;
     
     public Map() {
         setDimensions(0, 0);
@@ -24,13 +24,16 @@ public class Map {
         this.width = width;
         this.height = height;
         
-        matrix = new ArrayList<ArrayList<Cell>>(width);
-        for (List<Cell> list : matrix) {
-            list = new ArrayList<Cell>(height);
+        matrix = new ArrayList<ArrayList<Cell>>();
+        for (int i = 0; i < width; ++i) {
+            matrix.add(new ArrayList<Cell>());
+            for (int j = 0; j < height; ++j) {
+                matrix.get(i).add(new Asphalt());
+            }
         }
     }
     
-    public void setCell(Cell c, int x, int y) {
+    public void setCell(Cell c, int x, int y) {       
         matrix.get(x).set(y, c);
     }
     

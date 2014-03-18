@@ -4,6 +4,7 @@ import java.util.*;
 import java.io.*;
 import tanks.model.map.*;
 import tanks.model.gameobjects.*;
+import java.util.Arrays;
 
 public class GameModelReader {
     static void parse(GameModel model, String filename) {
@@ -13,11 +14,11 @@ public class GameModelReader {
         try (BufferedReader br = new BufferedReader(new FileReader(filename)))
 		{
 			String sCurrentLine;
-			
             sCurrentLine = br.readLine();
             String[] dimensions = sCurrentLine.split(" ");
-            map.setDimensions(Integer.parseInt(dimensions[0]), Integer.parseInt(dimensions[1]));
             
+            
+            map.setDimensions(Integer.parseInt(dimensions[0]), Integer.parseInt(dimensions[1]));
             int width = map.getWidth();
             int height = map.getHeight();
             
