@@ -22,13 +22,13 @@ public class GameModelReader {
             int width = map.getWidth();
             int height = map.getHeight();
             
-            for (int j = 0; j < height; ++j) {
+            for (int i = 0; i < height; ++i) {
 			    sCurrentLine = br.readLine();
 			    String[] tags = sCurrentLine.split(" ");
 			    
-			    for (int i = 0; i < width; ++i)	{
+			    for (int j = 0; j < width; ++j)	{
 			        Cell c;
-			        switch (MapLegend.getMapLegend(tags[i])) {
+			        switch (MapLegend.getMapLegend(tags[j])) {
 			        case WATER:
 			            c = new Water();
 			            break;

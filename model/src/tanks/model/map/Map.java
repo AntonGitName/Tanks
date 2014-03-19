@@ -21,13 +21,13 @@ public class Map {
     }
     
     public void setDimensions(int width, int height) {
-        this.width = width;
+        this.width = width; 
         this.height = height;
         
         matrix = new ArrayList<ArrayList<Cell>>();
-        for (int i = 0; i < width; ++i) {
+        for (int i = 0; i < height; ++i) {
             matrix.add(new ArrayList<Cell>());
-            for (int j = 0; j < height; ++j) {
+            for (int j = 0; j < width; ++j) {
                 matrix.get(i).add(new Asphalt());
             }
         }
@@ -42,7 +42,11 @@ public class Map {
     }
     
     public boolean isFree(int x, int y) {
-        return matrix.get(x).get(y).isFree();
+        if (x < 0 || x >= height || y < 0 || y >= width) {
+            return false;
+        } else {
+            return matrix.get(x).get(y).isFree();
+        }
     }
     
     public List<Position> getFreePos() {
