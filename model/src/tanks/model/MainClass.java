@@ -1,7 +1,6 @@
 package tanks.model;
 
 import java.util.*;
-import tanks.model.*;
 
 class MainClass {
     public static void main(String[] args) {
@@ -13,14 +12,17 @@ class MainClass {
         
         int i = 0;
         
-        System.out.println(m.getMap().isFree(1, 2));
-        
-        
         Scanner keyboard = new Scanner(System.in);
         while (i != 5) {
             view.print();
             String text = keyboard.nextLine();
-            i = Integer.parseInt(text);
+            try {
+                i = Integer.parseInt(text);
+            } catch(NumberFormatException e) { 
+                if (text.equals(" ")) {
+                    m.shoot("Player");
+                }
+            }
             switch (i) {
             case 8 :
                 m.moveTank("Player", Direction.UP);
@@ -37,6 +39,7 @@ class MainClass {
             default :
                 break;
             }
+            m.tick();
         }
         view.print();
         

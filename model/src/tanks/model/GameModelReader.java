@@ -2,50 +2,47 @@ package tanks.model;
 
 import java.util.*;
 import java.io.*;
-import tanks.model.map.*;
-import tanks.model.gameobjects.*;
-import java.util.Arrays;
 
 public class GameModelReader {
     static void parse(GameModel model, String filename) {
-        
-        tanks.model.map.Map map = model.getMap();
-
         try (BufferedReader br = new BufferedReader(new FileReader(filename)))
 		{
 			String sCurrentLine;
             sCurrentLine = br.readLine();
             String[] dimensions = sCurrentLine.split(" ");
             
+            int width = Integer.parseInt(dimensions[0]);
+            int height = Integer.parseInt(dimensions[1]);
+
+            model.rebuild(width, height);
             
-            map.setDimensions(Integer.parseInt(dimensions[0]), Integer.parseInt(dimensions[1]));
-            int width = map.getWidth();
-            int height = map.getHeight();
-            
+            char letter;
             for (int i = 0; i < height; ++i) {
 			    sCurrentLine = br.readLine();
 			    String[] tags = sCurrentLine.split(" ");
 			    
 			    for (int j = 0; j < width; ++j)	{
-			        Cell c;
 			        switch (MapLegend.getMapLegend(tags[j])) {
 			        case WATER:
-			            c = new Water();
+			            letter = 'W';
 			            break;
 			        case WOODENWALL:
-			            c = new Woodenwall();
+			            letter = 'O';
 			            break;
 			        case STONEWALL:
-			            c = new Stonewall();
+			            letter = 'S';
 			            break;
 			        case ASPHALT:
-			            c = new Asphalt();
+			            letter = 'A';
 			            break;
 			        default: ////// ERROR
-			            c = new Asphalt();
+			            letter = 'E';
 			            break;
 			        }
-			        map.setCell(c, i, j);
+
+			        if (letter != 'A') {
+    			        model.addImmovableObject(i, j, letter);
+			        }
 			    }
 			}
  

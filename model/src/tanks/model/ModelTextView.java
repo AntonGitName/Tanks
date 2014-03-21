@@ -1,8 +1,6 @@
 package tanks.model;
 
 import java.util.*;
-import tanks.model.map.Map;
-import tanks.model.gameobjects.GameObject;
 
 public class ModelTextView {
     private GameModel model;
@@ -16,30 +14,26 @@ public class ModelTextView {
     }
     
     public void print() {
-        tanks.model.map.Map map = model.getMap();
-        int width = map.getWidth();
-        int height = map.getHeight();
+
+        int width = model.getWidth();
+        int height = model.getHeight();
         
-        char[][] matrix = new char[height][];
-        for (int i = 0; i < height; ++i) {
-            matrix[i] = new char[width];
+        System.out.print("+");
+        for (int i = 0; i < width; ++i) {
+            System.out.print("-");
         }
-        
+        System.out.print("+\n");
         for (int i = 0; i < height; ++i) {
+            System.out.print("|");
             for (int j = 0; j < width; ++j) {
-                matrix[i][j] = map.getLetter(i, j);
+                System.out.print(model.getLetter(i, j));
             }
+            System.out.print("|\n");
         }
-        
-        for (GameObject obj : model.getGameObjects()) {
-            matrix[obj.getPosition().getX()][obj.getPosition().getY()] = obj.getLetter();
+        System.out.print("+");
+        for (int i = 0; i < width; ++i) {
+            System.out.print("-");
         }
-        
-        for (int i = 0; i < height; ++i) {
-            for (int j = 0; j < width; ++j) {
-                System.out.print(matrix[i][j]);
-            }
-            System.out.print("\n");
-        }
+        System.out.print("+\n");
     }
 }

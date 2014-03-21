@@ -6,7 +6,7 @@ public enum MapLegend {
     WATER("W"), WOODENWALL("O"), STONEWALL("S"), ASPHALT("A"), TANK("T"), FLAG("F"), BONUS("B");
     
     private String tag;
-    private static java.util.Map<String, MapLegend> letterToMapLegendMapping;
+    private static Map<String, MapLegend> letterToMapLegendMapping;
     
     private MapLegend(String tag) {
         this.tag = tag;
