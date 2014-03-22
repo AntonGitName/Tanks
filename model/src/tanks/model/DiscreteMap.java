@@ -26,7 +26,6 @@ public class DiscreteMap {
         int x = i + obj.getHeight();
         int j = obj.getPosition().getY();
         int y = j + obj.getWidth();
-
         for (; i < x; ++i) {
             for (j = obj.getPosition().getY(); j < y; ++j) {
                 ids[i][j] = obj.getID();
@@ -49,7 +48,6 @@ public class DiscreteMap {
     
     public int getObjectID(Vector2D pos, int w, int h) {
         // it also isnt very safe.
-        
         if (pos.getX() < 0 || pos.getY() < 0) {
             return emptyID;
         }

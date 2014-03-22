@@ -87,38 +87,56 @@ public class GameModel {
     
     public void moveTank(String name, Direction d) {
         tanks.get(namesOfTanks.get(name)).setSpeed(d.getMove());
+        tanks.get(namesOfTanks.get(name)).setGunOrientation(d.getMove());
     }
     
     public void shoot(String name) {
-    //    tanks.get(namesOfTanks.get(name)).;
+        Projectile projectile = tanks.get(namesOfTanks.get(name)).shoot(freeID++);
+
+        if (map.isFree(projectile.getPosition(), Projectile.size, Projectile.size)) {
+            gameobjects.put(projectile.getID(), projectile);
+            projectiles.put(projectile.getID(), projectile);
+            map.add(projectile);
+        }
     }
     
     private void moveProjectiles() {
+        Collection<Integer> toDelete = new ArrayList<Integer>();
         for (Projectile projectile : projectiles.values()) {
+            if (projectile.isJustCreated()) {
+                projectile.setCreateStatus(false);
+                continue;
+            }
+            
             Vector2D pos = projectile.getPosition();
             Vector2D destination = pos.add(projectile.getSpeed());
             Vector2D deltaMove = destination.sub(pos).normalize();
-            
+                        
             int w = projectile.getWidth();
             int h = projectile.getHeight();
             
             map.remove(projectile);
             
-            while ((destination != pos) && map.isFree(pos.add(deltaMove), w, h)) {
+            while (!destination.equals(pos) && map.isFree(pos.add(deltaMove), w, h)) {
                 pos = pos.add(deltaMove);
                 deltaMove = destination.sub(pos).normalize();
             }
             
-            if (destination == pos) {        
+            if (destination.equals(pos)) {        
                 projectile.setPosition(pos);
                 map.add(projectile);
             } else {
+
                 int id = map.getObjectID(pos.add(deltaMove), w, h);
-                gameobjects.get(id).attacked(); /// !!!! no implementation yet!
+                //gameobjects.get(id).attacked(); /// !!!! no implementation yet!
                 /* some code here */
-                projectiles.remove(projectile.getID());
+                // projectiles.remove(projectile.getID()); // ERROR !!!!
+                toDelete.add(projectile.getID());
                 gameobjects.remove(projectile.getID());
             }
+        }
+        for (Integer id : toDelete) {
+            projectiles.remove(id);
         }
     }
     
@@ -127,6 +145,10 @@ public class GameModel {
             Vector2D pos = tank.getPosition();
             Vector2D destination = pos.add(tank.getSpeed());
             Vector2D deltaMove = destination.sub(pos).normalize();
+            
+            if (destination.equals(pos)) {
+                continue;
+            }
             
             int w = tank.getWidth();
             int h = tank.getHeight();

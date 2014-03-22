@@ -4,7 +4,7 @@ import java.util.*;
 import java.io.*;
 
 public class GameModelReader {
-    static void parse(GameModel model, String filename) {
+    public static void parse(GameModel model, String filename) {
         try (BufferedReader br = new BufferedReader(new FileReader(filename)))
 		{
 			String sCurrentLine;
