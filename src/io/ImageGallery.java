@@ -1,6 +1,8 @@
 package io;
 
 import model.*;
+import model.BonusObject.Bonus;
+import model.MovableObject.Team;
 
 import java.util.*;
 
@@ -12,27 +14,35 @@ import java.awt.*;
 public class ImageGallery {
     
     private Image backgroundImage;
+    private Image grassImage;
     private Image waterImage;
     private Image stoneImage;
     private Image heartImage;
     private Image treeImage;
+    private Image palmImage;
+    private Image boomImage;
     private EnumMap<Direction, Image> greenTankImage;
     private EnumMap<Direction, Image> redTankImage;
     private EnumMap<Direction, Image> projectileImage;
+    private EnumMap<Bonus, Image> bonusImage;
     
     public ImageGallery(String spritesDestination) throws MapIOException {
         try {
             backgroundImage = ImageIO.read(new File(spritesDestination + "//ground//ground.png"));
+            grassImage = ImageIO.read(new File(spritesDestination + "//ground//grass.png"));
             waterImage = ImageIO.read(new File(spritesDestination + "//water//water.png"));
             stoneImage = ImageIO.read(new File(spritesDestination + "//stone//stone.png"));
             treeImage = ImageIO.read(new File(spritesDestination + "//tree//tree.png"));
+            palmImage = ImageIO.read(new File(spritesDestination + "//tree//palm.png"));
             heartImage = ImageIO.read(new File(spritesDestination + "//health//heart.png"));
+            boomImage = ImageIO.read(new File(spritesDestination + "//tank//boom.png"));
         } catch (IOException e) {
             throw new MapIOException("Cannot load image of Immovable Object");
         }
-        greenTankImage = new EnumMap<Direction, Image>(Direction.class);
-        redTankImage = new EnumMap<Direction, Image>(Direction.class);
-        projectileImage = new EnumMap<Direction, Image>(Direction.class);
+        greenTankImage = new EnumMap<>(Direction.class);
+        redTankImage = new EnumMap<>(Direction.class);
+        projectileImage = new EnumMap<>(Direction.class);
+        bonusImage = new EnumMap<>(Bonus.class);
         
         Collection<Direction> directions = new ArrayList<>(Arrays.asList(Direction.values()));
         directions.remove(Direction.NONE);
@@ -50,6 +60,16 @@ public class ImageGallery {
                 throw new MapIOException("Cannot load image of Movable Object");
             }
         }
+        
+        for (Bonus b : Bonus.values()) {
+            try {
+                String filename;
+                filename = spritesDestination + "//bonus//" + b.toString().toLowerCase() + ".png";
+                bonusImage.put(b, ImageIO.read(new File(filename)));
+            } catch (IOException e) {
+                throw new MapIOException("Cannot load image of Bonus");
+            }
+        }
     }
     
     public Image getBackgroundImage() {
@@ -60,25 +80,41 @@ public class ImageGallery {
         return heartImage;
     }
     
+    public Image getWaterImage() {
+        return waterImage;
+    }
+    
+    public Image getBoomImage() {
+        return boomImage;
+    }
+    
     public Image getImage(GameObject obj) {
         switch (obj.getDescription()) {
-            case WATER:
-                return waterImage;
-            case STONE:
-                return stoneImage;
-            case TREE:
-                return treeImage;
-            case TANK:
-                Tank t = (Tank) obj;
-                if (t.getTeam() == 1) {
-                    return greenTankImage.get(t.getOrientation());
-                } else {
-                    return redTankImage.get(t.getOrientation());
-                }
-            case PROJECTILE:
-                return projectileImage.get(((Projectile)obj).getOrientation());
-            default:
-                return null;
+        case BONUS:
+            return bonusImage.get(((BonusObject) obj).bonus);
+        case GRASS:
+        	return grassImage;
+        case PALM:
+        	return palmImage;
+        case GROUND:
+        	return backgroundImage;
+    	case WATER:
+            return waterImage;
+        case STONE:
+            return stoneImage;
+        case TREE:
+            return treeImage;
+        case TANK:
+            Tank t = (Tank) obj;
+            if (t.getTeam() == Team.GREEN) {
+                return greenTankImage.get(t.getOrientation());
+            } else {
+                return redTankImage.get(t.getOrientation());
+            }
+        case PROJECTILE:
+            return projectileImage.get(((Projectile)obj).getOrientation());
+        default:
+            return null;
         }
     }
 }

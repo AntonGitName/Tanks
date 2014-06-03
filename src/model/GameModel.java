@@ -2,25 +2,50 @@ package model;
 
 import java.util.*;
 
+import model.BonusObject.Bonus;
+import model.MovableObject.Team;
+import model.Tank.Difficulty;
+
 public class GameModel {
     
-    public static final int DISCRETE_FACTOR = 11;
-    public static final int SCORE_PER_TICK = 1;
-    public static final int SCORE_PER_KILL = 500;
+    public enum ModelType {
+        INFINITE, CAMPAIGN
+    }
     
-    private DiscreteMap map;
+    private final double BONUS_PROBABILITY = 0.0003;
+    private final int BONUS_RADIUS = 10;
+    
+    public static final int DISCRETE_FACTOR = 31;
+    private static final int SCORE_PER_TICK = 0;
+    private static final int DEFAULT_DELETED_TANKS_LIFETIME = 50;
+    private EnumMap<Difficulty, Integer> pointsForBotKill;
+    public static final int MAX_DIST_FOR_SEARCH = 100;
+    protected static final Random GENERATOR = new Random();
+    
+    protected DiscreteMap map;
     private Map<Integer, ImmovableObject> immovableObjects;
     private Map<Integer, Projectile> projectiles;
     private Map<Integer, Tank> tanks;
+    private Map<Integer, BonusObject> bonuses;
+    
     private int freeID;
     private int width;
     private int height;
-    private int score;
-    private Random r = new Random();
+    protected int score;
     
     private int playerID;
-    private Collection<Bot> bots;
+    protected Map<Integer, Bot> bots;
     
+    public class deletedTank {
+		public Vector2D position;
+    	public int timeToDisappear;
+    	public deletedTank(Vector2D position, int timeToDisappear) {
+			this.position = position;
+			this.timeToDisappear = timeToDisappear;
+		}
+    }
+    
+    private Collection<deletedTank> deletedTanks;
     
     public void debugprint() {
         System.out.print("Immovable objects:");
@@ -32,23 +57,86 @@ public class GameModel {
         map.debugprint();
     }
     
-    public void start() {
-        addPlayer(1);
-        addBot(2);
-        addBot(2);
-        addBot(2);
-    }
+    public void start() throws ModelException {
         
-    public GameModel() {
-        rebuild(0, 0);
+    }
+    
+    public boolean isOver() {
+        return false;
+    }
+    
+    protected List<Vector2D> getRandomEmptyPositions(Vector2D pos, int dist) {
+        List<Vector2D> freePositions = new ArrayList<>();
+        for (int i = pos.getX() - dist * DISCRETE_FACTOR; i < pos.getX() + dist * DISCRETE_FACTOR; i += DISCRETE_FACTOR) {
+            for (int j = pos.getY() - dist * DISCRETE_FACTOR; j < pos.getY() + dist * DISCRETE_FACTOR; j += DISCRETE_FACTOR) {
+                Vector2D p = new Vector2D(i, j);
+                if (map.isFree(p, DISCRETE_FACTOR, DISCRETE_FACTOR)) {
+                    freePositions.add(p);
+                }
+            }
+        }
+        return freePositions;
+    }
+    
+    protected List<Vector2D> getRandomEmptyPositions() {
+        List<Vector2D> freePositions = new ArrayList<>();
+        for (int i = 0; i < height; i += DISCRETE_FACTOR) {
+            for (int j = 0; j < width; j += DISCRETE_FACTOR) {
+                Vector2D pos = new Vector2D(i, j);
+                if (map.isFree(pos, DISCRETE_FACTOR, DISCRETE_FACTOR)) {
+                    freePositions.add(pos);
+                }
+            }
+        }
+        return freePositions;
+    }
+    
+    protected Vector2D getRandomEmptyPosition(Vector2D pos, int dist) {
+        List<Vector2D> freePositions = getRandomEmptyPositions(pos, dist);
+        if (freePositions.isEmpty()) {
+            return null;
+        }
+        return freePositions.get(GENERATOR.nextInt(freePositions.size()));
+    }
+    
+    protected Vector2D getRandomEmptyPosition() {
+        List<Vector2D> freePositions = getRandomEmptyPositions();
+        if (freePositions.isEmpty()) {
+            return null;
+        }
+        return freePositions.get(GENERATOR.nextInt(freePositions.size()));
+    }
+    
+    public void addRandomTrees(int numberOfTrees) throws ModelException {
+        List<Vector2D> freePositions = getRandomEmptyPositions();
+        Set<Vector2D> treePositions = new HashSet<>();
+        numberOfTrees = Math.min(freePositions.size(), numberOfTrees);
+        while (treePositions.size() < numberOfTrees) {
+            treePositions.add(freePositions.get(GENERATOR.nextInt(freePositions.size())));
+        }
+        for (Vector2D position : treePositions) {
+            Tree tree = new Tree(freeID++, position, GameObjectDescription.getRandomTree());
+            map.add(tree);
+            immovableObjects.put(tree.getID(), tree);
+        }
     }
     
     public int getWidth() {
         return width;
     }
-    
+
     public int getHeight() {
         return height;
+    }
+
+    public GameModel() {
+        rebuild(0, 0);
+        pointsForBotKill = new EnumMap<>(Difficulty.class);
+        pointsForBotKill.put(Difficulty.EASY, 200);
+        pointsForBotKill.put(Difficulty.MEDIUM, 500);
+        pointsForBotKill.put(Difficulty.HARD, 2000);
+        pointsForBotKill.put(Difficulty.INSANE, 5000);
+        pointsForBotKill.put(Difficulty.BOSS, 10000);
     }
     
     public int getScore() {
@@ -65,19 +153,39 @@ public class GameModel {
         result.addAll(immovableObjects.values());
         result.addAll(tanks.values());
         result.addAll(projectiles.values());
+        result.addAll(bonuses.values());
         return result;
     }
     
-    public void tick() {
+    public void tick() throws ModelException {
         botsMakeTurn();
         moveProjectiles();
         moveTanks();
         
-        while (bots.size() < 3) {
-            addBot(2);
-            score += SCORE_PER_KILL;
-        }
         score += SCORE_PER_TICK;
+        
+        updateDeletedTanks();
+        
+        if (GENERATOR.nextDouble() < BONUS_PROBABILITY) {
+            Vector2D pos = getRandomEmptyPosition(getPlayerTank().getPosition(), BONUS_RADIUS);
+            if (pos != null) {
+                pos = pos.add(GENERATOR.nextInt(DISCRETE_FACTOR - BonusObject.getSize()), GENERATOR.nextInt(DISCRETE_FACTOR - BonusObject.getSize()));
+                addImmovableObject(pos, GameObjectDescription.BONUS);
+            }
+        }
+    }
+    
+    private void updateDeletedTanks() {
+    	Iterator<deletedTank> it = deletedTanks.iterator();
+        while (it.hasNext())
+        {
+        	deletedTank t = it.next();
+        	if (t.timeToDisappear == 0) {
+        		it.remove();
+        	} else {
+        		--t.timeToDisappear;
+        	}
+        }
     }
     
     public boolean isPlayerAlive() {
@@ -88,82 +196,122 @@ public class GameModel {
         width = DISCRETE_FACTOR * w;
         height = DISCRETE_FACTOR * h;
         freeID = DiscreteMap.EMPTY_ID + 1;
-        immovableObjects = new HashMap<Integer, ImmovableObject>();
-        projectiles = new HashMap<Integer, Projectile>();
-        tanks = new HashMap<Integer, Tank>();
+        immovableObjects = new HashMap<>();
+        projectiles = new HashMap<>();
+        tanks = new HashMap<>();
         map = new DiscreteMap(width, height);
-        bots = new ArrayList<Bot>();
+        bots = new HashMap<>();
+        bonuses = new HashMap<>();
+        deletedTanks = new LinkedList<>();
         score = 0;
     }
     
-    public void addImmovableObject(int i, int j, GameObjectDescription d) {
-        Vector2D pos = new Vector2D(DISCRETE_FACTOR * i, DISCRETE_FACTOR * j);
+    public Collection<deletedTank> getDeletedTanks() {
+		return deletedTanks;
+	}
+
+    public void addImmovableObject(Vector2D pos, GameObjectDescription d) throws ModelException {
         ImmovableObject obj;
         switch (d) {
+        case GRASS:
+        case GROUND:
+            obj = new ImmovableObject(freeID++, pos, d);
+            immovableObjects.put(obj.getID(), obj);
+            return;
+        case BONUS:
+            Bonus b = Bonus.values()[GENERATOR.nextInt(Bonus.values().length)];
+            obj = new BonusObject(freeID++, pos, d, b);
+            map.add(obj);
+            bonuses.put(obj.getID(), (BonusObject)obj);
+            return;
+        case WATER:
+            obj = new ImmovableObject(freeID++, pos, d);
+            map.add(obj);
+            immovableObjects.put(obj.getID(), obj);
+            return;
+        case PALM:
         case TREE:
-            obj = new Tree(freeID++, pos);
+            obj = new Tree(freeID++, pos, d);
+            map.add(obj);
+            immovableObjects.put(obj.getID(), obj);
             break;
         default:
-            obj = new ImmovableObject(freeID++, pos, d);        
+            obj = new ImmovableObject(freeID++, pos, d);
+            map.add(obj);
+            immovableObjects.put(obj.getID(), obj);
         }
-        map.add(obj);
+        obj = new ImmovableObject(freeID++, pos, GameObjectDescription.getRandomBackground());
         immovableObjects.put(obj.getID(), obj);
     }
     
-    private void botsMakeTurn() {
-        for (Bot bot : bots) {
+	public void addImmovableObject(int i, int j, GameObjectDescription d) throws ModelException {
+	    Vector2D pos = new Vector2D(DISCRETE_FACTOR * i, DISCRETE_FACTOR * j);
+	    addImmovableObject(pos, d);
+    }
+    
+    private void botsMakeTurn() throws ModelException {
+        for (Bot bot : bots.values()) {
             bot.makeTurn();
         }
     }
     
-    private Tank addTank(int team, int delay) {
-        List<Vector2D> freePositions = new ArrayList<Vector2D>();
-        for (int i = 0; i < height; i += DISCRETE_FACTOR) {
-            for (int j = 0; j < width; j += DISCRETE_FACTOR) {
-                Vector2D pos = new Vector2D(i, j);
-                if (map.isFree(pos, DISCRETE_FACTOR, DISCRETE_FACTOR)) {
-                    freePositions.add(pos);
-                }
-            }
-        }
-        if (freePositions.isEmpty()) {
-            return null;
-        } else {
-            Tank tank = new Tank(freeID++, freePositions.get(r.nextInt(freePositions.size())), team, delay);
+    private Tank addTank(Team team, int delay, Vector2D position) throws ModelException {
+        Tank tank = null;
+        if (map.isFree(position, Tank.getSize(), Tank.getSize())) {
+            tank = new  Tank(freeID++, position, team, delay);
             map.add(tank);
             tanks.put(tank.getID(), tank);
-            return tank;
         }
+        if (tank == null) {
+            throw new ModelException("Cannot add tank at position" + position.toString());
+        }
+        return tank;
     }
     
-    private void addBot(int team) {
-        Tank tank = addTank(team, 3);
-        if (tank != null) {
-            bots.add(new Bot(this, tank));
+    // only Bot class can call this method
+    public Tank addTank(Team team, Difficulty difficulty, Vector2D position) throws ModelException {
+    	Tank tank = null;
+        if (map.isFree(position, Tank.getSize(), Tank.getSize())) {
+            tank = new  Tank(freeID++, position, team, difficulty);
+            map.add(tank);
+            tanks.put(tank.getID(), tank);
         }
+        if (tank == null) {
+            throw new ModelException("Cannot add tank(bot) at position" + position.toString());
+        }
+        return tank;
     }
     
-    private void addPlayer(int team) {
-        Tank tank = addTank(team, 2);
-        if (tank != null) {
-            playerID = tank.getID();
+    protected void addBot(Team team, Difficulty difficulty, Vector2D position) throws ModelException {
+        Bot bot = new Bot(this, position, difficulty);
+        bots.put(bot.getTankID(), bot);
+    }
+    
+    public void addPlayer(Team team, int delay, Vector2D position) throws ModelException {
+        Tank tank;
+        try {
+            tank = addTank(team, delay, position);
         }
+        catch (ModelException e) {
+            throw new ModelException("Cannot add player at position " + position.toString());
+        }
+        playerID = tank.getID();
     }
     
     public void movePlayer(Direction d) {
-        moveTank(playerID, d);
+        if (tanks.containsKey(playerID)) {
+            moveTank(playerID, d);
+        }
     }
     
-    public void shootPlayer() {
-        shoot(playerID);
+    public void shootPlayer() throws ModelException {
+        if (tanks.containsKey(playerID)) {
+            shoot(playerID);
+        }
     }
     
-    public boolean canTankMove(int ID, Vector2D v) {
-        return map.canMove(tanks.get(ID), v);
-    }
-
-    public boolean canTankMove(Tank t, Vector2D v) {
-        return map.canMove(t, v);
+    public boolean canBotMove(Tank t, Vector2D v) {
+        return map.canBotMove(t, v);
     }
    
     public void moveTank(int ID, Direction direction) {
@@ -171,12 +319,12 @@ public class GameModel {
     }
     
     public void moveTank(Tank t, Direction direction) {
-        t.setDirection(direction);
-        t.setOrientation(direction);
+    	t.setMoveDirection(direction);
+    	t.setOrientation(direction);
     }
     
-    public void shoot(Tank t) {
-        if (t.canShoot()) {
+    public void shoot(Tank t) throws ModelException {
+        if (t.canShoot(true)) {
             Projectile projectile = t.shoot(freeID++);
             if (map.isFreeForProjectile(projectile.getPosition(), Projectile.SIZE, Projectile.SIZE)) {
                 projectiles.put(projectile.getID(), projectile);
@@ -187,36 +335,50 @@ public class GameModel {
         }
     }
     
-    private void attack(Projectile projectile) {
+    public Tank getPlayerTank() {
+        return tanks.containsKey(playerID) ? tanks.get(playerID) : null;
+    }
+    
+    private GameObject getGameObject(int id) throws ModelException {
+        if (immovableObjects.containsKey(id)) {
+            return immovableObjects.get(id);
+        }
+        if (tanks.containsKey(id)) {
+            return tanks.get(id);
+        }
+        if (projectiles.containsKey(id)) {
+            return projectiles.get(id);
+        }
+        if (bonuses.containsKey(id)) {
+            return bonuses.get(id);
+        }
+        throw new ModelException("Invalid game object ID");
+    }
+    
+    private void attack(Projectile projectile) throws ModelException {
         int id = map.getBlockID(projectile, projectile.getDirection().getMove());
+        // quite unsafe code
+        if (id == DiscreteMap.EMPTY_ID) {
+            id = map.getBlockID(projectile, new Vector2D(0, 0));
+        }
+        
         if (id != DiscreteMap.EMPTY_ID) {
-            if (immovableObjects.containsKey(id)) {
-                if (immovableObjects.get(id).attacked(projectile)) {
-                    deleteImmovableObject(id);
-                }
-            }
-            if (tanks.containsKey(id)) {
-                if (tanks.get(id).attacked(projectile)) {
-                    deleteTank(id);
-                }
-            }
-            if (projectiles.containsKey(id)) {
-                if (projectiles.get(id).attacked(projectile)) {
-                    deleteProjectile(id);
-                }
+            GameObject obj = getGameObject(id);
+            if (obj.attacked(projectile)) {
+                deleteObject(obj);
             }
         }
     }
     
-    public void shoot(int ID) {
+    public void shoot(int ID) throws ModelException {
         shoot(tanks.get(ID));
     }
     
     public Map<Vector2D, Vector2D> getAccessibleCells(Tank tank) {
-        return map.getAccessibleCells(tank);
+        return map.getAccessibleCells(tank, MAX_DIST_FOR_SEARCH);
     }
     
-    private void moveProjectiles() {
+    private void moveProjectiles() throws ModelException {
         Set<Integer> toDelete = new HashSet<Integer>();
         for (Projectile projectile : projectiles.values()) {
             
@@ -238,31 +400,29 @@ public class GameModel {
                 toDelete.add(projectile.getID());
                 int id = map.getBlockID(projectile, projectile.getDirection().getMove());
                 if (id != DiscreteMap.EMPTY_ID) {
-                    if (immovableObjects.containsKey(id)) {
-                        if (immovableObjects.get(id).attacked(projectile)) {
-                            deleteImmovableObject(id);
-                        }
-                    }
-                    if (tanks.containsKey(id)) {
-                        if (tanks.get(id).attacked(projectile)) {
-                            deleteTank(id);
-                        }
-                    }
+                    GameObject obj = getGameObject(id);
+                    
+                    // !!! to prevent iterated list from changing !!!
                     if (projectiles.containsKey(id)) {
-                        if (projectiles.get(id).attacked(projectile)) {
+                        if (obj.attacked(projectile)) {
                             toDelete.add(id);
+                            continue;
                         }
+                    }
+                    
+                    if (obj.attacked(projectile)) {
+                        deleteObject(obj);
                     }
                 }
             }
         }
         // deleting projectiles only here
         for (Integer id : toDelete) {
-            deleteProjectile(id);
+            deleteObject(projectiles.get(id));
         }
     }
     
-    public List<Tank> getEnemies(int team) {
+    public List<Tank> getEnemies(Team team) {
         List<Tank> enemies = new ArrayList<Tank>();
         for (Tank t: tanks.values()) {
             if (t.getTeam() != team) {
@@ -272,7 +432,7 @@ public class GameModel {
         return enemies;
     }
     
-    private void moveTanks() {
+    private void moveTanks() throws ModelException {
         Set<Integer> toDelete = new HashSet<Integer>();
         for (Tank tank : tanks.values()) {
             
@@ -280,10 +440,16 @@ public class GameModel {
                 continue;
             }
             
+            // side effect of global bonuses...
+            if (tank.getHealth() <= 0) {
+                toDelete.add(tank.getID());
+                continue;
+            }
+            
             Vector2D pos = tank.getPosition();
             Vector2D deltaMove = tank.getDirection().getMove();
             
-            tank.setDirection(Direction.NONE);
+            tank.setMoveDirection(Direction.NONE);
             
             if (map.canMove(tank, deltaMove)) {
                 map.remove(tank);
@@ -294,12 +460,27 @@ public class GameModel {
                 if (projectiles.containsKey(id)) {
                     Projectile projectile = projectiles.get(id);
                     // deleting projectile
-                    map.remove(projectile);
-                    deleteProjectile(id);
+                    deleteObject(projectile);
 
                     if (tank.attacked(projectile)) {
                         map.remove(tank);
                         toDelete.add(tank.getID());
+                    }
+                }
+                if (bonuses.containsKey(id)) {
+                    BonusObject bonus = bonuses.get(id); 
+                    // not the best idea to write it here
+                    if (tank.getID() == playerID) {
+                        bonus.effect(this, tank);
+                    }
+                    deleteObject(bonus);
+                    if (tank.getHealth() <= 0) {
+                        toDelete.add(tank.getID());
+                        continue;
+                    } else {
+                        map.remove(tank);
+                        tank.setPosition(pos.add(deltaMove));
+                        map.add(tank);
                     }
                 }
             }
@@ -307,33 +488,45 @@ public class GameModel {
         
         // deleting tanks only here
         for (Integer id : toDelete) {
-            deleteTank(id);
+            deleteObject(tanks.get(id));
         }        
     }
     
-    private void deleteTank(int ID) {
-        Bot bot = null;
-        for (Bot b : bots) {
-            if (b.getTankID() == ID) {
-                bot = b;
-                break;
+    private void deleteObject(GameObject obj) throws ModelException {
+        int ID = obj.getID();
+        switch (obj.getDescription()) {
+        case GRASS:
+        case GROUND:
+        case TREE:
+        case PALM:
+        case WATER:
+        case STONE:
+            map.remove(obj);
+            immovableObjects.remove(ID);
+            break;
+        case BONUS:
+            map.remove(obj);
+            bonuses.remove(ID);
+            break;
+        case PROJECTILE:
+            map.remove(obj);
+            projectiles.remove(ID);
+            break;
+        case TANK:
+            deletedTanks.add(new deletedTank(obj.getPosition(), DEFAULT_DELETED_TANKS_LIFETIME));
+            if (bots.containsKey(ID)) {
+                score += pointsForBotKill.get(bots.get(ID).getDifficulty());
+                bots.remove(ID);
             }
+            map.remove(obj);
+            tanks.remove(ID);
+            break;
+        default:
+            throw new ModelException("Removing unknown object");
         }
-        if (bot != null) {
-            bots.remove(bot);
-        }
-        map.remove(tanks.get(ID));
-        tanks.remove(ID);
     }
-    
-    private void deleteImmovableObject(int ID) {
-        map.remove(immovableObjects.get(ID));
-        immovableObjects.remove(ID);
-    }
-    
-    private void deleteProjectile(int ID) {
-        map.remove(projectiles.get(ID));
-        projectiles.remove(ID);
-    }    
-    
+
+	public Stack<Direction> getRandomPath(MovableObject obj) {
+		return map.getRandomPath(obj, MAX_DIST_FOR_SEARCH);
+	}    
 }

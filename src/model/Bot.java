@@ -2,22 +2,29 @@ package model;
 
 import java.util.*;
 
+import model.MovableObject.Team;
+import model.Tank.Difficulty;
+
 public class Bot {
     
     private Tank controlledTank;
     private Stack<Direction> plannedMoves;
     private GameModel model;
-    private int turnsToShoot;
+    private Difficulty difficulty;   
     
-    private static final Random GENERATOR = new Random();
-    private static final int MAX_TURNS_TO_SHOOT = 3;
-    
-    public Bot(GameModel model, Tank tank) {
+    public Bot(GameModel model, Vector2D position, Difficulty difficulty) throws ModelException {
         this.model = model;
-        controlledTank = tank;
-        plannedMoves = new Stack<Direction>();
-        turnsToShoot = 0;
+        controlledTank = model.addTank(Team.RED, difficulty, position);
+        setDifficulty(difficulty);
+        if (controlledTank == null) {
+        	throw new ModelException("Cannot add bot at position " + position.toString());
+        }
+        plannedMoves = new Stack<>();
     }
+    
+    /*
+     * 
+    private static final Random GENERATOR = new Random();
     
     private void createPath() {
         plannedMoves.clear();
@@ -42,22 +49,32 @@ public class Bot {
             }
         }
     }
+    */
     
-    public void makeTurn() {    
-        if (turnsToShoot == 0) {
-            Collection<Tank> enemies = model.getEnemies(controlledTank.getTeam());
-            for (Tank enemy : enemies) {
-                if (enemy.getPosition().sub(controlledTank.getPosition()).normalize().equals(controlledTank.getOrientation().getMove())) {
+    private void createPath() {
+        plannedMoves = model.getRandomPath(controlledTank);
+    }
+    
+    public void makeTurn() throws ModelException {
+        boolean shootFlag = false;
+        Collection<Tank> enemies = model.getEnemies(controlledTank.getTeam());
+        for (Tank enemy : enemies) {
+            if (enemy.getPosition().sub(controlledTank.getPosition()).normalize().equals(controlledTank.getOrientation().getMove())) {
+                if (controlledTank.canShoot(false)) {
                     model.shoot(controlledTank.getID());
-                    turnsToShoot = MAX_TURNS_TO_SHOOT;
                     return;
+                } else {
+                    shootFlag = true;
+                    break;
                 }
             }
-        } else {
-            --turnsToShoot;
+        }
+
+        if (shootFlag) {
+            controlledTank.canShoot(true);
         }
         
-        if (plannedMoves.empty() || !model.canTankMove(controlledTank.getID(), plannedMoves.peek().getMove())) {
+        if (plannedMoves.empty() || !model.canBotMove(controlledTank, plannedMoves.peek().getMove())) {
             createPath();
         }
         
@@ -74,4 +91,12 @@ public class Bot {
         return controlledTank.getID();
     }
     
+    
+    public Difficulty getDifficulty() {
+		return difficulty;
+	}
+
+	private void setDifficulty(Difficulty difficulty) {
+		this.difficulty = difficulty;
+	}
 }

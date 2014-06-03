@@ -7,19 +7,22 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Random;
-import java.util.Stack;
 
+import model.GameModel;
 import model.GameObjectDescription;
+import model.ModelException;
 import model.Vector2D;
 
 public class GameModelGenerator {
     
     private static Random generator = new Random();
     
-    public static void createMap(int width, int height, String filename) {
+    public static void createMap(int width, int height, String filename, int botsCount) throws ModelException {
         GameObjectDescription[][] map = new GameObjectDescription[height][];
         for (int i = 0; i < height; ++i) {
             map[i] = new GameObjectDescription[width];
@@ -29,7 +32,9 @@ public class GameModelGenerator {
         for (GameObjectDescription desc : GameObjectDescription.values()) {
             cellVariants.add(desc);
         }
+        cellVariants.remove(cellVariants.indexOf(GameObjectDescription.BONUS));
         cellVariants.remove(cellVariants.indexOf(GameObjectDescription.GROUND));
+        cellVariants.remove(cellVariants.indexOf(GameObjectDescription.GRASS));
         cellVariants.remove(cellVariants.indexOf(GameObjectDescription.TANK));
         cellVariants.remove(cellVariants.indexOf(GameObjectDescription.PROJECTILE));
         for (int i = 0; i < height; ++i) {
@@ -38,34 +43,34 @@ public class GameModelGenerator {
             }
         }
         
-        int firstGroundCellsCount = 1 * (width * height) / (width + height);
+        int firstGroundCellsCount = 2 * (width * height) / (width + height);
         List<Vector2D> firstGroundCells = new ArrayList<>();
         for (int i = 0; i < firstGroundCellsCount; ++i) {
             Vector2D v = new Vector2D(generator.nextInt(height), generator.nextInt(height));
             firstGroundCells.add(v);
-            map[v.getX()][v.getY()] = GameObjectDescription.GROUND;
+            map[v.getX()][v.getY()] = GameObjectDescription.getRandomBackground();
         }
         for (int i = 0; i < firstGroundCellsCount - 1; ++i) {
             List<Vector2D> path = findPath(map, firstGroundCells.get(i), firstGroundCells.get(i + 1));
             for (Vector2D cell : path) {
-                map[cell.getX()][cell.getY()] = GameObjectDescription.GROUND;
+                map[cell.getX()][cell.getY()] =  GameObjectDescription.getRandomBackground();
             }
         }
         
-        printMap(map, filename);
+        printMap(map, filename, botsCount);
     }
     
-    private static void printMap(GameObjectDescription[][] map, String filename) {
+    private static void printMap(GameObjectDescription[][] map, String filename, int botsCount) throws ModelException {
         PrintWriter writer = null;
         try {
             writer = new PrintWriter(filename, "UTF-8");
         } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            throw new ModelException("Map generation error.");
         } catch (UnsupportedEncodingException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            throw new ModelException("Map generation error.");
         }
+        
+        writer.println(GameModel.ModelType.INFINITE.toString());
         writer.println(Integer.toString(map.length) + " " + Integer.toString(map[0].length));
         
         String preparedOutput = Arrays.deepToString(map).replaceAll("],", "],\n");
@@ -77,7 +82,9 @@ public class GameModelGenerator {
             preparedOutput = preparedOutput.replaceAll(desc.toString(), "" + desc.getTag());
         }
         
-        writer.print(preparedOutput);
+        writer.println(preparedOutput);
+        
+        writer.print(botsCount);
         writer.close();
         
     }
@@ -92,12 +99,12 @@ public class GameModelGenerator {
             visited[i] = new boolean[w];
         }
         
-        Stack<Vector2D> stack = new Stack<>();
+        Queue<Vector2D> queue = new LinkedList<>();
         Map<Vector2D, Vector2D> pred = new HashMap<>();
-        stack.push(a);
+        queue.add(a);
         visited[a.getX()][a.getY()] = true;
-        while (!stack.empty()) {
-            Vector2D cell = stack.pop();
+        while (!queue.isEmpty()) {
+            Vector2D cell = queue.poll();
             if (cell.equals(b)) {
                 break;
             }
@@ -128,7 +135,7 @@ public class GameModelGenerator {
             }
             Collections.shuffle(toAdd);
             for (Vector2D v : toAdd) {
-                stack.push(v);
+                queue.add(v);
             }
         }
         

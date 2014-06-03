@@ -1,13 +1,18 @@
+CAMPAIGN
 12 12
-G G G G G G G G G G G G
-G S S G G R R G G S S G
-G S G G G R R G G G S G
-G G G R G R R G R G G G
-G G G R G G G G R G G G
-G R R R G W W G R R R G
-G R R R G W W G R R R G
-G G G R G G G G R G G G
-G G G R G R R G R G G G
-G S G G G R R G G G S G
-G S S G G R R G G S S G
-G G G G G G G G G G G G
+1 1 1 1 1 1 1 1 1 1 1 1
+1 S S 1 1 2 2 1 1 S S 1
+1 S 1 1 1 2 2 1 1 1 S 1
+1 1 1 2 1 2 2 1 2 1 1 1
+1 1 1 2 1 1 1 1 2 1 1 1
+1 2 2 2 1 W W 1 2 2 2 1
+1 2 2 2 1 W W 1 2 2 2 1
+1 1 1 2 1 1 1 1 2 1 1 1
+1 1 1 2 1 2 2 1 2 1 1 1
+1 S 1 1 1 2 2 1 1 1 S 1
+1 S S 1 1 2 2 1 1 S S 1
+1 1 1 1 1 1 1 1 1 1 1 1
+PLAYER 3 3
+2 4
+HARD 1 1
+EASY 12 12

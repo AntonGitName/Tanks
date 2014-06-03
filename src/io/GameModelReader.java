@@ -4,11 +4,11 @@ import java.io.*;
 import model.*;
 
 public class GameModelReader {
-    public static void parse(GameModel model, String filename) throws MapIOException {
-        try (BufferedReader br = new BufferedReader(new FileReader(filename)))
+    public static void parse(GameModel model, BufferedReader reader) throws MapIOException {
+        try
         {
             String sCurrentLine;
-            sCurrentLine = br.readLine();
+            sCurrentLine = reader.readLine();
             String[] dimensions = sCurrentLine.split(" ");
             
             int width = Integer.parseInt(dimensions[0]);
@@ -17,7 +17,7 @@ public class GameModelReader {
             model.rebuild(width, height);
             
             for (int i = 0; i < height; ++i) {
-                sCurrentLine = br.readLine();
+                sCurrentLine = reader.readLine();
                 String[] tags = sCurrentLine.split(" ");
                 
                 for (int j = 0; j < width; ++j)    {
@@ -27,14 +27,14 @@ public class GameModelReader {
                         throw new MapIOException("Invalid chracter at " + (new Vector2D(i, j)).toString() );
                     }
 
-                    if (!d.equals(GameObjectDescription.GROUND)) {
-                        model.addImmovableObject(i, j, d);
-                    }
+                    model.addImmovableObject(i, j, d);
                 }
             }
  
         } catch (IOException e) {
             throw new MapIOException("Cannot read map file.");
-        }
+        } catch (ModelException e) {
+			throw new MapIOException(e.getMessage());
+		}
     }
 }

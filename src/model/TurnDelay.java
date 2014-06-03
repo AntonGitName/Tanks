@@ -4,6 +4,12 @@ public class TurnDelay {
 
     private int delay;
     private int turnsToMove;
+   
+    public TurnDelay(int delay) {
+    	super();
+        this.delay = delay;
+        this.turnsToMove = 1;
+    }
     
     public TurnDelay(int delay, int turnsToMove) {
         super();

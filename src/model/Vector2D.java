@@ -1,14 +1,36 @@
 package model;
 
 import java.lang.Math;
+import java.lang.Comparable;
 
-public class Vector2D {
+public class Vector2D implements Comparable<Vector2D> {
     private int x;
     private int y;
     
     public Vector2D(int x, int y) {
         this.x = x;
         this.y = y;
+    }
+    
+    public Vector2D(Vector2D v) {
+        this.x = v.getX();
+        this.y = v.getY();
+    }
+    
+    public void incX() {
+        ++(this.x);
+    }
+    
+    public void incX(int k) {
+        this.x += k;
+    }
+    
+    public void incY() {
+        ++(this.y);
+    }
+    
+    public void incY(int k) {
+        this.y += k;
     }
     
     public int getX() {
@@ -92,6 +114,15 @@ public class Vector2D {
         if (y != other.y)
             return false;
         return true;
+    }
+    
+    public static int dist(Vector2D a, Vector2D b) {
+        return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+    }
+
+    @Override
+    public int compareTo(Vector2D v) {
+        return (this.x != v.x) ? ((this.x > v.x) ? 1 : -1) : ((this.y != v.y) ? ((this.y > v.y) ? 1 : -1) : 0); 
     }
     
 }
