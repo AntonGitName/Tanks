@@ -1,9 +1,8 @@
-Tanks
+![alt tag](https://github.com/AntonGitName/Tanks/blob/master/sprites/tank/red/tankUP.png?raw=true "Tank!") Tanks 
 =====
 
 A small GUI project in java. Its main idea is '2D game'.
 
-![alt tag](https://github.com/AntonGitName/Tanks/blob/master/sprites/tank/red/tankUP.png)](#features)
 
 How to build:
 
